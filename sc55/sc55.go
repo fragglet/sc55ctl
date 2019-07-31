@@ -112,7 +112,7 @@ func SetMasterVolume(device DeviceID, volume int) []byte {
 // SetMasterPan returns an SC-55 SysEx command that sets the master pan
 // on the SC-55 to a value in the range 1..127.
 func SetMasterPan(device DeviceID, pan int) []byte {
-	pan = clamp(pan, 1, 127)
+	pan = clamp(pan, -63, 63) + 64
 	return DataSet(device, AddrMasterPan, byte(pan))
 }
 
@@ -133,6 +133,6 @@ func SetMasterTune(device DeviceID, tune int) []byte {
 // shift to a value in the range -24 - +24 semitones.
 func SetMasterKeyShift(device DeviceID, keyShift int) []byte {
 	keyShift = clamp(keyShift, -24, 24)
-	return DataSet(device, AddrMasterKeyShift, byte(keyShift+0x28))
+	return DataSet(device, AddrMasterKeyShift, byte(keyShift+0x40))
 }
 
