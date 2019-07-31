@@ -48,14 +48,35 @@ func deviceID() sc55.DeviceID {
 	return sc55.DeviceID(*sc55DeviceID)
 }
 
+// outPortForName returns the device ID of the port with the given name.
+func outPortForName(name string) (portmidi.DeviceID, error) {
+	portNames := []string{}
+	for i := 0; i < portmidi.CountDevices(); i++ {
+		id := portmidi.DeviceID(i)
+		info := portmidi.Info(id)
+		if !info.IsOutputAvailable {
+			continue
+		}
+		if info.Name == name {
+			return id, nil
+		}
+		portNames = append(portNames, fmt.Sprintf("%q", info.Name))
+	}
+	return portmidi.DeviceID(-1), fmt.Errorf("invalid port %q: valid ports: %v", name, strings.Join(portNames, "; "))
+}
+
 func openPortMidi() (*portmidi.Stream, error) {
-	if err := portmidi.Initialize(); err != nil {
+	err := portmidi.Initialize()
+	if err != nil {
 		return nil, err
 	}
-	for id := 0; id < portmidi.CountDevices(); id++ {
-		fmt.Println(portmidi.Info(portmidi.DeviceID(id)))
+	id := portmidi.DefaultOutputDeviceID()
+	if *midiDevice != "" {
+		id, err = outPortForName(*midiDevice)
+		if err != nil {
+			return nil, err
+		}
 	}
-	id := portmidi.DeviceID(2)
 	return portmidi.NewOutputStream(id, 1024, 0)
 }
 
@@ -115,6 +136,7 @@ var commands = []subcommands.Command{
 		name: "display-image",
 		synopsis: "Show a picture on the SC-55 front panel",
 		produceData: func(args []string) ([]byte, error) {
+			// TODO: Allow the user to specify an image file
 			return sc55.DisplayImage(deviceID(), bitmap), nil
 		},
 	},
