@@ -129,6 +129,20 @@ func setParameterCallback(f func(sc55.DeviceID, int) []byte) func([]string) ([]b
 
 var commands = []subcommands.Command{
 	&cmd{
+		name:     "reset-gm",
+		synopsis: "Reset the SoundCanvas into General MIDI mode",
+		produceData: func([]string) ([]byte, error) {
+			return sc55.ResetGM(deviceID()), nil
+		},
+	},
+	&cmd{
+		name:     "reset-gs",
+		synopsis: "Reset the SoundCanvas into GS mode",
+		produceData: func([]string) ([]byte, error) {
+			return sc55.ResetGS(deviceID()), nil
+		},
+	},
+	&cmd{
 		name:     "display-message",
 		synopsis: "Show a message on the SC-55 front panel",
 		minArgs:  1,

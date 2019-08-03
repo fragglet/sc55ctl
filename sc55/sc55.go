@@ -24,6 +24,7 @@ const (
 	AddrMasterVolume   = 0x400004
 	AddrMasterKeyShift = 0x400005
 	AddrMasterPan      = 0x400006
+	AddrModeSet        = 0x40007F
 )
 
 type DeviceID byte
@@ -93,12 +94,12 @@ func SetXxx(device DeviceID, param int) []byte {
 
 func clamp(x, min, max int) int {
 	switch {
-		case x < min:
-			return min
-		case x > max:
-			return max
-		default:
-			return x
+	case x < min:
+		return min
+	case x > max:
+		return max
+	default:
+		return x
 	}
 }
 
@@ -122,8 +123,8 @@ func SetMasterTune(device DeviceID, tune int) []byte {
 	tune = clamp(tune, -1000, 1000)
 	tune = tune + 1000 + 0x18
 	return DataSet(device, AddrMasterTune,
-		byte(tune & 0xff),
-		byte((tune >> 8) & 0xff),
+		byte(tune&0xff),
+		byte((tune>>8)&0xff),
 		0,
 		0,
 	)
@@ -136,3 +137,19 @@ func SetMasterKeyShift(device DeviceID, keyShift int) []byte {
 	return DataSet(device, AddrMasterKeyShift, byte(keyShift+0x40))
 }
 
+// ResetGM returns an SC-55 SysEx command that sets the SC-55 into GM mode.
+func ResetGM(device DeviceID) []byte {
+	return []byte{
+		sysExStart,
+		manufacturerID,
+		byte(device),
+		0x09, // General MIDI message
+		0x01, // General MIDI on
+		sysExEnd,
+	}
+}
+
+// ResetGS returns an SC-55 SysEx command that sets the SC-55 into GS mode.
+func ResetGS(device DeviceID) []byte {
+	return DataSet(device, AddrModeSet, 0)
+}
