@@ -93,11 +93,11 @@ func (c *cmd) Usage() string {
 func (c *cmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	if len(f.Args()) < c.minArgs {
 		log.Printf("parameter not provided for command %q", c.name)
-		return subcommands.ExitFailure
+		return subcommands.ExitUsageError
 	}
 	msg, err := c.produceData(f.Args())
 	if err != nil {
-		return subcommands.ExitFailure
+		return subcommands.ExitUsageError
 	}
 	out, err := openPortMidi()
 	if err != nil {
