@@ -2,6 +2,8 @@
 package sc55
 
 import (
+	"fmt"
+	"image"
 	"reflect"
 )
 
@@ -151,18 +153,22 @@ func DisplayMessage(device DeviceID, msg string) []byte {
 
 // DisplayImage returns an SC-55 SysEx command that displays an image on the
 // SC-55 front console. The image must be a 16x16 monochrome bitmap.
-func DisplayImage(device DeviceID, bmp [16][16]bool) []byte {
+func DisplayImage(device DeviceID, img image.Image) ([]byte, error) {
+	if img.Bounds() != image.Rect(0, 0, 16, 16) {
+		return nil, fmt.Errorf("image to display must be 16x16 bitmap")
+	}
 	buf := make([]byte, 64)
-	for y, row := range bmp {
-		for x, val := range row {
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 16; x++ {
 			bytenum := (x/5)*16 + y
 			bitnum := uint(4 - (x % 5))
-			if val {
+			r, g, b, _ := img.At(x, y).RGBA()
+			if (r+g+b) / 3 > 0x8000 {
 				buf[bytenum] |= 1 << bitnum
 			}
 		}
 	}
-	return DataSet(device, AddrDisplayImage, buf...)
+	return DataSet(device, AddrDisplayImage, buf...), nil
 }
 
 // ResetGM returns an SC-55 SysEx command that sets the SC-55 into GM mode.

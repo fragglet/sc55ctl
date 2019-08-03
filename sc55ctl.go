@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image/png"
 	"log"
 	"os"
 	"strconv"
@@ -27,25 +28,6 @@ var (
 
 func deviceID() sc55.DeviceID {
 	return sc55.DeviceID(sc55DeviceID)
-}
-
-var bitmap = [16][16]bool{
-	{o, X, o, X, o, o, o, o, o, X, o, X, o, o, o, o},
-	{o, X, o, X, o, o, X, o, o, X, o, X, o, o, X, o},
-	{o, X, X, X, o, X, o, X, o, X, o, X, o, X, o, X},
-	{o, X, o, X, o, X, X, o, o, X, o, X, o, X, o, X},
-	{o, X, o, X, o, o, X, X, o, X, o, X, o, o, X, o},
-	{o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o},
-	{X, o, X, o, o, o, o, o, o, o, o, X, o, o, o, X},
-	{X, o, X, o, o, X, o, o, o, X, o, X, o, o, o, X},
-	{X, X, X, o, X, o, X, o, X, o, o, X, o, o, X, X},
-	{X, X, X, o, X, o, X, o, X, o, o, X, o, X, o, X},
-	{X, o, X, o, o, X, o, o, X, o, o, X, o, X, X, X},
-	{o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o},
-	{o, o, X, o, o, o, X, o, o, o, X, o, o, o, o, o},
-	{o, o, o, o, X, o, o, o, o, o, o, X, o, o, o, o},
-	{o, o, X, o, o, o, X, o, o, X, X, X, o, o, o, o},
-	{o, o, o, X, X, X, o, o, o, o, o, o, o, o, o, o},
 }
 
 // outPortForName returns the device ID of the port with the given name.
@@ -154,9 +136,18 @@ var commands = []subcommands.Command{
 	&cmd{
 		name:     "display-image",
 		synopsis: "Show a picture on the SC-55 front panel",
+		minArgs: 1,
 		produceData: func(args []string) ([]byte, error) {
-			// TODO: Allow the user to specify an image file
-			return sc55.DisplayImage(deviceID(), bitmap), nil
+			in, err := os.Open(args[0])
+			if err != nil {
+				return nil, err
+			}
+			defer in.Close()
+			img, err := png.Decode(in)
+			if err != nil {
+				return nil, err
+			}
+			return sc55.DisplayImage(deviceID(), img)
 		},
 	},
 	&cmd{
