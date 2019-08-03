@@ -17,11 +17,6 @@ import (
 	"github.com/rakyll/portmidi"
 )
 
-const (
-	o = false
-	X = true
-)
-
 var (
 	midiDevice   string
 	sc55DeviceID int
