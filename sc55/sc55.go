@@ -1,6 +1,15 @@
 // Package sc55 is a library for generating SC-55 SysEx messages.
 package sc55
 
+type DeviceID byte
+
+// Register represents a SoundCanvas memory register.
+type Register struct {
+	Address, Size int
+	Min, Max      int
+	Zero          int
+}
+
 const (
 	// DefaultDevice is the default device ID unless otherwise configured.
 	DefaultDevice = 0x10
@@ -20,14 +29,15 @@ const (
 	AddrDisplayMessage = 0x100000
 	AddrDisplayImage   = 0x100100
 
-	AddrMasterTune     = 0x400000
-	AddrMasterVolume   = 0x400004
-	AddrMasterKeyShift = 0x400005
-	AddrMasterPan      = 0x400006
-	AddrModeSet        = 0x40007F
+	AddrModeSet = 0x40007F
 )
 
-type DeviceID byte
+var (
+	MasterTune     = &Register{0x400000, 4, 0x18, 0x7e8, 0x400}
+	MasterVolume   = &Register{0x400004, 1, 0x00, 0x7f, 0}
+	MasterKeyShift = &Register{0x400005, 1, 0x28, 0x58, 0x40}
+	MasterPan      = &Register{0x400006, 1, 0x01, 0x7f, 0x40}
+)
 
 func checksum(data []byte) byte {
 	sum := 0
@@ -42,7 +52,7 @@ func checksum(data []byte) byte {
 func DataSet(device DeviceID, addr int, data ...byte) []byte {
 	// A different model ID is used for different address ranges:
 	modelID := byte(0x42)
-	if addr < AddrMasterTune {
+	if addr < MasterTune.Address {
 		modelID = 0x45
 	}
 	body := []byte{
@@ -87,56 +97,6 @@ func DisplayImage(device DeviceID, bmp [16][16]bool) []byte {
 	return DataSet(device, AddrDisplayImage, buf...)
 }
 
-// SetXxx returns an SC-55 SysEx command that
-func SetXxx(device DeviceID, param int) []byte {
-	return nil
-}
-
-func clamp(x, min, max int) int {
-	switch {
-	case x < min:
-		return min
-	case x > max:
-		return max
-	default:
-		return x
-	}
-}
-
-// SetMasterVolume returns an SC-55 SysEx command that sets the master volume
-// on the SC-55 to a value in the range 0-127.
-func SetMasterVolume(device DeviceID, volume int) []byte {
-	volume = clamp(volume, 0, 127)
-	return DataSet(device, AddrMasterVolume, byte(volume))
-}
-
-// SetMasterPan returns an SC-55 SysEx command that sets the master pan
-// on the SC-55 to a value in the range 1..127.
-func SetMasterPan(device DeviceID, pan int) []byte {
-	pan = clamp(pan, -63, 63) + 64
-	return DataSet(device, AddrMasterPan, byte(pan))
-}
-
-// SetMasterTune returns an SC-55 SysEx command that sets the master tuning
-// to a value in the range -1000 - +1000.
-func SetMasterTune(device DeviceID, tune int) []byte {
-	tune = clamp(tune, -1000, 1000)
-	tune = tune + 1000 + 0x18
-	return DataSet(device, AddrMasterTune,
-		byte(tune&0xff),
-		byte((tune>>8)&0xff),
-		0,
-		0,
-	)
-}
-
-// SetMasterKeyShift returns an SC-55 SysEx command that sets the master key
-// shift to a value in the range -24 - +24 semitones.
-func SetMasterKeyShift(device DeviceID, keyShift int) []byte {
-	keyShift = clamp(keyShift, -24, 24)
-	return DataSet(device, AddrMasterKeyShift, byte(keyShift+0x40))
-}
-
 // ResetGM returns an SC-55 SysEx command that sets the SC-55 into GM mode.
 func ResetGM(device DeviceID) []byte {
 	return []byte{
@@ -152,4 +112,27 @@ func ResetGM(device DeviceID) []byte {
 // ResetGS returns an SC-55 SysEx command that sets the SC-55 into GS mode.
 func ResetGS(device DeviceID) []byte {
 	return DataSet(device, AddrModeSet, 0)
+}
+
+func clamp(x, min, max int) int {
+	switch {
+	case x < min:
+		return min
+	case x > max:
+		return max
+	default:
+		return x
+	}
+}
+
+// Set returns a SC-55 SysEx command to set the given register to the given value.
+func (r *Register) Set(device DeviceID, value int) []byte {
+	value = clamp(value, r.Min, r.Max) + r.Zero
+	bytes := []byte{
+		byte(value & 0xff),
+		byte((value >> 8) & 0xff),
+		byte((value >> 16) & 0xff),
+		byte((value >> 24) & 0xff),
+	}
+	return DataSet(device, r.Address, bytes[:r.Size]...)
 }
