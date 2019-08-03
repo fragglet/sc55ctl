@@ -97,15 +97,15 @@ func (*getRegisterCommand) Synopsis() string { return "get the value of a regist
 func (*getRegisterCommand) SetFlags(f *flag.FlagSet) { setCommonFlags(f) }
 func (*getRegisterCommand) Usage() string { return "" }
 
-func queryRegister(in, out *portmidi.Stream, r *sc55.Register) ([]byte, error) {
+func queryRegister(in, out *portmidi.Stream, r *sc55.Register) (int, error) {
 	msg := r.Get(deviceID())
 	if err := out.WriteSysExBytes(portmidi.Time(), msg); err != nil {
-		return nil, err
+		return 0, err
 	}
 	for {
 		reply, err := in.ReadSysExBytes(1000)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		if len(reply) == 0 {
 			time.Sleep(time.Millisecond)
@@ -114,8 +114,8 @@ func queryRegister(in, out *portmidi.Stream, r *sc55.Register) ([]byte, error) {
 		for len(reply) > 0 && reply[len(reply) - 1] == 0 {
 			reply = reply[:len(reply)-1]
 		}
-		dev, addr, value, err := sc55.UnmarshalSet(reply)
-		if err == nil && dev == deviceID() && addr == r.Address {
+		dev, value, err := r.Unmarshal(reply)
+		if err == nil && dev == deviceID() {
 			return value, nil
 		}
 	}
