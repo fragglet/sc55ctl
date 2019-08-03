@@ -62,6 +62,18 @@ func openPortMidi() (*portmidi.Stream, error) {
 	return portmidi.NewOutputStream(id, 1024, 0)
 }
 
+type listRegistersCommand struct {}
+func (*listRegistersCommand) Name() string     { return "register-list" }
+func (*listRegistersCommand) Synopsis() string { return "list all registers on the SoundCanvas" }
+func (*listRegistersCommand) SetFlags(f *flag.FlagSet) { }
+func (*listRegistersCommand) Usage() string { return "" }
+func (*listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interface{}) subcommands.ExitStatus {
+	for _, r := range sc55.AllRegisters() {
+		fmt.Printf("% 8x  %s\n", r.Address, r.Name())
+	}
+	return subcommands.ExitSuccess
+}
+
 type cmd struct {
 	name, synopsis string
 	minArgs        int
@@ -173,6 +185,24 @@ var commands = []subcommands.Command{
 		synopsis:    "Set the master key shift",
 		minArgs:     1,
 		produceData: setParameterCallback(sc55.MasterKeyShift.Set),
+	},
+	&listRegistersCommand{},
+	&cmd{
+		name: "register-set",
+		synopsis: "set the value of a register",
+		minArgs: 2,
+		produceData: func(args []string) ([]byte, error) {
+			r, ok := sc55.RegisterByName(args[0])
+			if !ok {
+
+				return nil, fmt.Errorf("unknown register %q", args[0])
+			}
+			val, err := strconv.ParseInt(args[1], 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			return r.Set(deviceID(), int(val)), nil
+		},
 	},
 }
 
