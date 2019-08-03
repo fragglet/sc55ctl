@@ -90,7 +90,7 @@ func (c *cmd) Name() string     { return c.name }
 func (c *cmd) Synopsis() string { return c.synopsis }
 func (*cmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&midiDevice, "midi_device", "", "Name of output MIDI device")
-	f.IntVar(&sc55DeviceID, "sc55_device_id", sc55.DefaultDevice, "ID of SC-55 device to control")
+	f.IntVar(&sc55DeviceID, "sc55_device_id", int(sc55.DefaultDevice), "ID of SC-55 device to control")
 }
 func (c *cmd) Usage() string {
 	return fmt.Sprintf("%s [...]:\n%s\n", c.Name(), c.Synopsis())

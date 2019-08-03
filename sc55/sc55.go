@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+// DeviceID represents the address of an SC-55 so that multiple can be
+// present on the same MIDI bus. Usually "DefaultDevice" should be used.
 type DeviceID byte
 
 // Register represents a SoundCanvas memory register.
@@ -75,7 +77,7 @@ type Part struct {
 
 const (
 	// DefaultDevice is the default device ID unless otherwise configured.
-	DefaultDevice = 0x10
+	DefaultDevice = DeviceID(0x10)
 
 	manufacturerID = 0x41
 
