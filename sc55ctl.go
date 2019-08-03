@@ -275,30 +275,6 @@ var commands = []subcommands.Command{
 			return sc55.DisplayImage(deviceID(), img)
 		},
 	},
-	&cmd{
-		name:        "master-volume",
-		synopsis:    "Set the master volume",
-		minArgs:     1,
-		produceData: setParameterCallback(sc55.MasterVolume.Set),
-	},
-	&cmd{
-		name:        "master-pan",
-		synopsis:    "Set the master pan",
-		minArgs:     1,
-		produceData: setParameterCallback(sc55.MasterPan.Set),
-	},
-	&cmd{
-		name:        "master-tune",
-		synopsis:    "Set the master tune",
-		minArgs:     1,
-		produceData: setParameterCallback(sc55.MasterTune.Set),
-	},
-	&cmd{
-		name:        "master-key-shift",
-		synopsis:    "Set the master key shift",
-		minArgs:     1,
-		produceData: setParameterCallback(sc55.MasterKeyShift.Set),
-	},
 	&listRegistersCommand{},
 	&getRegisterCommand{},
 	&cmd{
