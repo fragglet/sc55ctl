@@ -89,7 +89,7 @@ type listRegistersCommand struct {
 	all bool
 }
 
-func (*listRegistersCommand) Name() string     { return "register-list" }
+func (*listRegistersCommand) Name() string     { return "list" }
 func (*listRegistersCommand) Synopsis() string { return "list all registers on the SoundCanvas" }
 func (*listRegistersCommand) Usage() string    { return "" }
 
@@ -113,7 +113,7 @@ type getRegisterCommand struct {
 	all     bool
 }
 
-func (*getRegisterCommand) Name() string     { return "register-get" }
+func (*getRegisterCommand) Name() string     { return "get" }
 func (*getRegisterCommand) Synopsis() string { return "get the value of a register" }
 func (*getRegisterCommand) Usage() string    { return "" }
 
@@ -278,7 +278,7 @@ var commands = []subcommands.Command{
 	&listRegistersCommand{},
 	&getRegisterCommand{},
 	&cmd{
-		name:     "register-set",
+		name:     "set",
 		synopsis: "set the value of a register",
 		minArgs:  2,
 		produceData: func(args []string) ([]byte, error) {
