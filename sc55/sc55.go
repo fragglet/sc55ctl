@@ -142,6 +142,10 @@ func marshalInt24(val int) []byte {
 	}
 }
 
+func unmarshalInt24(data []byte) int {
+	return (int(data[0]) << 16) | (int(data[1]) << 8) | int(data[2])
+}
+
 // DataSet returns an SC-55 DT1 command that sets the value of a range
 // of memory in the SC-55.
 func DataSet(device DeviceID, addr int, data ...byte) []byte {
@@ -165,6 +169,29 @@ func DataGet(device DeviceID, addr, size int) []byte {
 	msg = append(msg, checksum(body))
 	msg = append(msg, sysExEnd)
 	return msg
+}
+
+// UnmarshalSet decodes a DT1 command, returning the device ID of the device that
+// sent it, the address, and value.
+func UnmarshalSet(msg []byte) (DeviceID, int, []byte, error) {
+	switch {
+	case msg[0] != sysExStart || msg[len(msg) - 1] != sysExEnd:
+		return 0, 0, nil, fmt.Errorf("failed to unmarshal: not a SysEx command")
+	case msg[1] != manufacturerID:
+		return 0, 0, nil, fmt.Errorf("wrong manufacturer: want %02x, got %02x", manufacturerID, msg[1])
+	case msg[3] != 0x42 && msg[3] != 0x45:
+		return 0, 0, nil, fmt.Errorf("wrong device: want 0x42 or 0x45, got %02x", msg[3])
+	case msg[4] != cmdDT1:
+		return 0, 0, nil, fmt.Errorf("wrong command type, want %02x, got %02x", cmdDT1, msg[4])
+	case len(msg) < 10:
+		return 0, 0, nil, fmt.Errorf("DT1 command too short: len=%d", len(msg))
+	}
+	wantChecksum := checksum(msg[5:len(msg)-2])
+	gotChecksum := msg[len(msg)-2]
+	if wantChecksum != gotChecksum {
+		return 0, 0, nil, fmt.Errorf("wrong checksum: calculated=%02x, got=%02x", wantChecksum, gotChecksum)
+	}
+	return DeviceID(msg[2]), unmarshalInt24(msg[5:8]), msg[8:len(msg)-2], nil
 }
 
 // DisplayMessage returns an SC-55 SysEx command that displays a message on the
