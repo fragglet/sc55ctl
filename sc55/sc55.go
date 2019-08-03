@@ -126,22 +126,41 @@ func checksum(data []byte) byte {
 	return byte(128 - (sum % 128))
 }
 
+func modelID(addr int) byte {
+	if addr < MasterTune.Address {
+		return 0x45
+	}
+	return 0x42
+}
+
+func marshalInt24(val int) []byte {
+	return []byte{
+		// Address:
+		byte((val >> 16) & 0xff),
+		byte((val >> 8) & 0xff),
+		byte(val & 0xff),
+	}
+}
+
 // DataSet returns an SC-55 DT1 command that sets the value of a range
 // of memory in the SC-55.
 func DataSet(device DeviceID, addr int, data ...byte) []byte {
 	// A different model ID is used for different address ranges:
-	modelID := byte(0x42)
-	if addr < MasterTune.Address {
-		modelID = 0x45
-	}
-	body := []byte{
-		// Address:
-		byte((addr >> 16) & 0xff),
-		byte((addr >> 8) & 0xff),
-		byte(addr & 0xff),
-	}
+	body := marshalInt24(addr)
 	body = append(body, data...)
-	msg := []byte{sysExStart, manufacturerID, byte(device), modelID, cmdDT1}
+	msg := []byte{sysExStart, manufacturerID, byte(device), modelID(addr), cmdDT1}
+	msg = append(msg, body...)
+	msg = append(msg, checksum(body))
+	msg = append(msg, sysExEnd)
+	return msg
+}
+
+// DataGet returns an SC-55 RQ1 command that requests the contents of a range
+// of memory in the SC-55.
+func DataGet(device DeviceID, addr, size int) []byte {
+	body := marshalInt24(addr)
+	body = append(body, marshalInt24(size)...)
+	msg := []byte{sysExStart, manufacturerID, byte(device), modelID(addr), cmdRQ1}
 	msg = append(msg, body...)
 	msg = append(msg, checksum(body))
 	msg = append(msg, sysExEnd)
@@ -208,7 +227,12 @@ func clamp(x, min, max int) int {
 	}
 }
 
-// Set returns a SC-55 SysEx command to set the given register to the given value.
+// Get returns an SC-55 SysEx command to get the value of the given register.
+func (r *Register) Get(device DeviceID) []byte {
+	return DataGet(device, r.Address, r.Size)
+}
+
+// Set returns an SC-55 SysEx command to set the given register to the given value.
 func (r *Register) Set(device DeviceID, value int) []byte {
 	value = clamp(value, r.Min, r.Max) + r.Zero
 	bytes := []byte{

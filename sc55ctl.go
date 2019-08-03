@@ -188,6 +188,19 @@ var commands = []subcommands.Command{
 	},
 	&listRegistersCommand{},
 	&cmd{
+		name: "register-get",
+		synopsis: "get the value of a register",
+		minArgs: 1,
+		produceData: func(args []string) ([]byte, error) {
+			r, ok := sc55.RegisterByName(args[0])
+			if !ok {
+
+				return nil, fmt.Errorf("unknown register %q", args[0])
+			}
+			return r.Get(deviceID()), nil
+		},
+	},
+	&cmd{
 		name: "register-set",
 		synopsis: "set the value of a register",
 		minArgs: 2,
