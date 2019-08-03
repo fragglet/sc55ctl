@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"reflect"
+	"sort"
 )
 
 // DeviceID represents the address of an SC-55 so that multiple can be
@@ -20,61 +21,61 @@ type Register struct {
 
 // Part represents the set of registers associated with a part.
 type Part struct {
-	ToneNumberCC        Register
-	ToneNumberPC        Register
-	RxChannel           Register
-	RxPitchBend         Register
-	RxChPressure        Register
-	RxProgramChange     Register
-	RxControlChange     Register
-	RxPolyPressure      Register
-	RxNoteMessage       Register
-	RxRPN               Register
-	RxNRPN              Register
-	RxModulation        Register
-	RxVolume            Register
-	RxPanPot            Register
-	RxExpression        Register
-	RxHoldi             Register
-	RxPortamento        Register
-	RxSostenuto         Register
-	RxSoft              Register
-	MonoPolyMode        Register
-	AssignMode          Register
-	UseForRhythm        Register
-	PitchKeyShift       Register
-	PitchOffsetFine     Register
-	PartLevel           Register
-	VelocitySenseDepth  Register
-	VelocitySenseOffset Register
-	PanPot              Register
-	KeyRangeLow         Register
-	KeyRangeHigh        Register
-	CC1Controller       Register
-	CC2Controller       Register
-	ChorusSendLevel     Register
-	ReverbSendLevel     Register
-	RxBankSelect        Register
-	ToneModify1         Register
-	ToneModify2         Register
-	ToneModify3         Register
-	ToneModify4         Register
-	ToneModify5         Register
-	ToneModify6         Register
-	ToneModify7         Register
-	ToneModify8         Register
-	ScaleTuningC        Register
-	ScaleTuningCSharp   Register
-	ScaleTuningD        Register
-	ScaleTuningDSharp   Register
-	ScaleTuningE        Register
-	ScaleTuningF        Register
-	ScaleTuningFSharp   Register
-	ScaleTuningG        Register
-	ScaleTuningGSharp   Register
-	ScaleTuningA        Register
-	ScaleTuningASharp   Register
-	ScaleTuningB        Register
+	ToneNumberCC        Register `name:"tone-number-cc"`
+	ToneNumberPC        Register `name:"tone-number-cc"`
+	RxChannel           Register `name:"rx-channel"`
+	RxPitchBend         Register `name:"rx-pitch-bend"`
+	RxChPressure        Register `name:"rx-ch-pressure"`
+	RxProgramChange     Register `name:"rx-program-change"`
+	RxControlChange     Register `name:"rx-control-change"`
+	RxPolyPressure      Register `name:"rx-poly-pressure"`
+	RxNoteMessage       Register `name:"rx-note-message"`
+	RxRPN               Register `name:"rx-rpn"`
+	RxNRPN              Register `name:"rx-nrpn"`
+	RxModulation        Register `name:"rx-modulation"`
+	RxVolume            Register `name:"rx-volume"`
+	RxPanPot            Register `name:"rx-pan-pot"`
+	RxExpression        Register `name:"rx-expression"`
+	RxHoldi             Register `name:"rx-holdi"`
+	RxPortamento        Register `name:"rx-portamento"`
+	RxSostenuto         Register `name:"rx-sostenuto"`
+	RxSoft              Register `name:"rx-soft"`
+	MonoPolyMode        Register `name:"mono-poly-mode"`
+	AssignMode          Register `name:"assign-mode"`
+	UseForRhythm        Register `name:"use-for-rhythm"`
+	PitchKeyShift       Register `name:"pitch-key-shift"`
+	PitchOffsetFine     Register `name:"pitch-offset-fine"`
+	PartLevel           Register `name:"part-level"`
+	VelocitySenseDepth  Register `name:"velocity-sense-depth"`
+	VelocitySenseOffset Register `name:"velocity-sense-offset"`
+	PanPot              Register `name:"pan-pot"`
+	KeyRangeLow         Register `name:"key-range-low"`
+	KeyRangeHigh        Register `name:"key-range-high"`
+	CC1Controller       Register `name:"cc-1-controller"`
+	CC2Controller       Register `name:"cc-2-controller"`
+	ChorusSendLevel     Register `name:"chorus-send-level"`
+	ReverbSendLevel     Register `name:"reverb-send-level"`
+	RxBankSelect        Register `name:"rx-bank-select"`
+	ToneModify1         Register `name:"tone-modify-1"`
+	ToneModify2         Register `name:"tone-modify-2"`
+	ToneModify3         Register `name:"tone-modify-3"`
+	ToneModify4         Register `name:"tone-modify-4"`
+	ToneModify5         Register `name:"tone-modify-5"`
+	ToneModify6         Register `name:"tone-modify-6"`
+	ToneModify7         Register `name:"tone-modify-7"`
+	ToneModify8         Register `name:"tone-modify-8"`
+	ScaleTuningC        Register `name:"scale-tuning-c"`
+	ScaleTuningCSharp   Register `name:"scale-tuning-cs"`
+	ScaleTuningD        Register `name:"scale-tuning-d"`
+	ScaleTuningDSharp   Register `name:"scale-tuning-ds"`
+	ScaleTuningE        Register `name:"scale-tuning-e"`
+	ScaleTuningF        Register `name:"scale-tuning-f"`
+	ScaleTuningFSharp   Register `name:"scale-tuning-fs"`
+	ScaleTuningG        Register `name:"scale-tuning-g"`
+	ScaleTuningGSharp   Register `name:"scale-tuning-gs"`
+	ScaleTuningA        Register `name:"scale-tuning-a"`
+	ScaleTuningASharp   Register `name:"scale-tuning-as"`
+	ScaleTuningB        Register `name:"scale-tuning-b"`
 }
 
 const (
@@ -107,7 +108,17 @@ var (
 
 	// Parts contains the set of registers associated with each part.
 	Parts [16]Part
+
+	registersByAddress map[int]*Register
+	registersByName map[string]*Register
+	registerName map[*Register]string
 )
+
+func addRegister(name string, r *Register) {
+	registersByName[name] = r
+	registersByAddress[r.Address] = r
+	registerName[r] = name
+}
 
 func checksum(data []byte) byte {
 	sum := 0
@@ -211,6 +222,40 @@ func (r *Register) Set(device DeviceID, value int) []byte {
 	return DataSet(device, r.Address, bytes[:r.Size]...)
 }
 
+// Name returns the name of the given register.
+func (r *Register) Name() string {
+	return registerName[r]
+}
+
+// RegisterByName looks up a register by name, returning register, true if it
+// exists or nil, false if there is no such register.
+func RegisterByName(name string) (*Register, bool) {
+	r, ok := registersByName[name]
+	return r, ok
+}
+
+// RegisterByAddress looks up a register by address, returning register, true
+// if it exists or nil, false if there is no such register.
+func RegisterByAddress(addr int) (*Register, bool) {
+	r, ok := registersByAddress[addr]
+	return r, ok
+}
+
+// AllRegisters returns a slice containing all known SC-55 registers, sorted
+// by address.
+func AllRegisters() []*Register {
+	addrs := []int{}
+	for a := range registersByAddress {
+		addrs = append(addrs, a)
+	}
+	sort.IntSlice(addrs).Sort()
+	result := []*Register{}
+	for _, a := range addrs {
+		result = append(result, registersByAddress[a])
+	}
+	return result
+}
+
 var templatePart = Part{
 	ToneNumberCC:        Register{0x00, 1, 0x00, 0x7f, 0},
 	ToneNumberPC:        Register{0x01, 1, 0x00, 0x7f, 0},
@@ -269,17 +314,29 @@ var templatePart = Part{
 	ScaleTuningB:        Register{0x4b, 1, 0x00, 0x7f, 0x40},
 }
 
-func (p *Part) init(addr int) {
+func (p *Part) init(prefix string, addr int) {
 	*p = templatePart
 	v := reflect.ValueOf(p).Elem()
 	for i := 0; i < v.NumField(); i++ {
-		reg := v.Field(i).Addr().Interface().(*Register)
-		reg.Address += addr
+		name := v.Type().Field(i).Tag.Get("name")
+		r := v.Field(i).Addr().Interface().(*Register)
+		r.Address += addr
+		addRegister(prefix + name, r)
 	}
 }
 
 func init() {
+	registersByAddress = make(map[int]*Register)
+	registersByName = make(map[string]*Register)
+	registerName = make(map[*Register]string)
+
+	addRegister("master-tune", &MasterTune)
+	addRegister("master-volume", &MasterVolume)
+	addRegister("master-key-shift", &MasterKeyShift)
+	addRegister("master-pan", &MasterPan)
+
 	for i := range Parts {
-		Parts[i].init(0x401000 + i*0x100)
+		name := fmt.Sprintf("part-%d.", i)
+		Parts[i].init(name, 0x401000 + i*0x100)
 	}
 }
