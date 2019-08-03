@@ -106,9 +106,7 @@ var (
 	MasterKeyShift = Register{0x400005, 1, 0x28, 0x58, 0x40}
 	MasterPan      = Register{0x400006, 1, 0x01, 0x7f, 0x40}
 
-	// Parts contains the set of registers associated with each part.
-	Parts [16]Part
-
+	parts [16]Part
 	registersByAddress map[int]*Register
 	registersByName map[string]*Register
 	registerName map[*Register]string
@@ -325,6 +323,15 @@ func (p *Part) init(prefix string, addr int) {
 	}
 }
 
+// PartByNumber returns the given part, looked up by number in the
+// range 1-16. This corresponds to the number shown on the front panel.
+func PartByNumber(i int) *Part {
+	if i < 1 || i > 16 {
+		return nil
+	}
+	return &parts[i - 1]
+}
+
 func init() {
 	registersByAddress = make(map[int]*Register)
 	registersByName = make(map[string]*Register)
@@ -335,8 +342,22 @@ func init() {
 	addRegister("master-key-shift", &MasterKeyShift)
 	addRegister("master-pan", &MasterPan)
 
-	for i := range Parts {
-		name := fmt.Sprintf("part-%d.", i)
-		Parts[i].init(name, 0x401000 + i*0x100)
+	for i := range parts {
+		// As per the SC-55 manual ... (yes this is silly)
+		// i  #0 -> partNumber  1 -> partIndex 1
+		// i  #1 -> partNumber  2 -> partIndex 2
+		// ...
+		// i  #9 -> partNumber 10 -> partIndex 0
+		// i #10 -> partNumber 11 -> partIndex A
+		// i #11 -> partNumber 12 -> partIndex B
+		// ...
+		// i #15 -> partNumber 16 -> partIndex F
+		partNumber := i + 1
+		prefix := fmt.Sprintf("part-%d.", partNumber)
+		partIndex := (partNumber % 10)
+		if partNumber > 10 {
+			partIndex = partNumber - 1
+		}
+		parts[i].init(prefix, 0x401000 + partIndex*0x100)
 	}
 }
