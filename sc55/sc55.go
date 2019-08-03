@@ -42,18 +42,18 @@ type Part struct {
 	MonoPolyMode        Register `name:"mono-poly-mode"`
 	AssignMode          Register `name:"assign-mode"`
 	UseForRhythm        Register `name:"use-for-rhythm"`
-	PitchKeyShift       Register `name:"pitch-key-shift"`
+	PitchKeyShift       Register `name:"pitch-key-shift" important:"true"`
 	PitchOffsetFine     Register `name:"pitch-offset-fine"`
-	PartLevel           Register `name:"part-level"`
+	PartLevel           Register `name:"part-level" important:"true"`
 	VelocitySenseDepth  Register `name:"velocity-sense-depth"`
 	VelocitySenseOffset Register `name:"velocity-sense-offset"`
-	PanPot              Register `name:"pan-pot"`
+	PanPot              Register `name:"pan-pot" important:"true"`
 	KeyRangeLow         Register `name:"key-range-low"`
 	KeyRangeHigh        Register `name:"key-range-high"`
 	CC1Controller       Register `name:"cc-1-controller"`
 	CC2Controller       Register `name:"cc-2-controller"`
-	ChorusSendLevel     Register `name:"chorus-send-level"`
-	ReverbSendLevel     Register `name:"reverb-send-level"`
+	ChorusSendLevel     Register `name:"chorus-send-level" important:"true"`
+	ReverbSendLevel     Register `name:"reverb-send-level" important:"true"`
 	RxBankSelect        Register `name:"rx-bank-select"`
 	ToneModify1         Register `name:"tone-modify-1"`
 	ToneModify2         Register `name:"tone-modify-2"`
@@ -109,12 +109,16 @@ var (
 	registersByAddress map[int]*Register
 	registersByName map[string]*Register
 	registerName map[*Register]string
+	isImportant map[*Register]bool
 )
 
-func addRegister(name string, r *Register) {
+func addRegister(name string, r *Register, important bool) {
 	registersByName[name] = r
 	registersByAddress[r.Address] = r
 	registerName[r] = name
+	if important {
+		isImportant[r] = true
+	}
 }
 
 func checksum(data []byte) byte {
@@ -253,6 +257,12 @@ func clamp(x, min, max int) int {
 	}
 }
 
+// Important returns true if the given register is "important", ie. one of the
+// settings that is shown on the physical front panel of the device.
+func (r *Register) Important() bool {
+	return isImportant[r]
+}
+
 // Get returns an SC-55 SysEx command to get the value of the given register.
 func (r *Register) Get(device DeviceID) []byte {
 	return DataGet(device, r.Address, r.Size)
@@ -388,10 +398,12 @@ func (p *Part) init(prefix string, addr int) {
 	*p = templatePart
 	v := reflect.ValueOf(p).Elem()
 	for i := 0; i < v.NumField(); i++ {
-		name := v.Type().Field(i).Tag.Get("name")
+		tag := v.Type().Field(i).Tag
+		name := tag.Get("name")
+		_, important := tag.Lookup("important")
 		r := v.Field(i).Addr().Interface().(*Register)
 		r.Address += addr
-		addRegister(prefix + name, r)
+		addRegister(prefix + name, r, important)
 	}
 }
 
@@ -408,11 +420,12 @@ func init() {
 	registersByAddress = make(map[int]*Register)
 	registersByName = make(map[string]*Register)
 	registerName = make(map[*Register]string)
+	isImportant = make(map[*Register]bool)
 
-	addRegister("master-tune", &MasterTune)
-	addRegister("master-volume", &MasterVolume)
-	addRegister("master-key-shift", &MasterKeyShift)
-	addRegister("master-pan", &MasterPan)
+	addRegister("master-tune", &MasterTune, true)
+	addRegister("master-volume", &MasterVolume, true)
+	addRegister("master-key-shift", &MasterKeyShift, true)
+	addRegister("master-pan", &MasterPan, true)
 
 	for i := range parts {
 		// As per the SC-55 manual ... (yes this is silly)

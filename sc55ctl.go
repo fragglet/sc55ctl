@@ -75,13 +75,33 @@ func openInputStream() (*portmidi.Stream, error) {
 	return portmidi.NewInputStream(id, 1024)
 }
 
-type listRegistersCommand struct {}
+func onlyImportant(regs []*sc55.Register) []*sc55.Register {
+	important := []*sc55.Register{}
+	for _, r := range regs {
+		if r.Important() {
+			important = append(important, r)
+		}
+	}
+	return important
+}
+
+type listRegistersCommand struct {
+	all bool
+}
 func (*listRegistersCommand) Name() string     { return "register-list" }
 func (*listRegistersCommand) Synopsis() string { return "list all registers on the SoundCanvas" }
-func (*listRegistersCommand) SetFlags(f *flag.FlagSet) { }
 func (*listRegistersCommand) Usage() string { return "" }
-func (*listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interface{}) subcommands.ExitStatus {
-	for _, r := range sc55.AllRegisters() {
+
+func (c *listRegistersCommand) SetFlags(f *flag.FlagSet) {
+	f.BoolVar(&c.all, "all", false, "list all registers")
+}
+
+func (c *listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interface{}) subcommands.ExitStatus {
+	regs := sc55.AllRegisters()
+	if !c.all {
+		regs = onlyImportant(regs)
+	}
+	for _, r := range regs {
 		fmt.Printf("% 8x  %s\n", r.Address, r.Name())
 	}
 	return subcommands.ExitSuccess
@@ -89,14 +109,17 @@ func (*listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interfac
 
 type getRegisterCommand struct {
 	timeout time.Duration
+	all bool
 }
 func (*getRegisterCommand) Name() string     { return "register-get" }
 func (*getRegisterCommand) Synopsis() string { return "get the value of a register" }
+func (*getRegisterCommand) Usage() string { return "" }
+
 func (c *getRegisterCommand) SetFlags(f *flag.FlagSet) {
 	setCommonFlags(f)
 	f.DurationVar(&c.timeout, "timeout", 100 * time.Millisecond, "how long to wait for a reply from the SoundCanvas before timing out")
+	f.BoolVar(&c.all, "all", false, "fetch values of all registers")
 }
-func (*getRegisterCommand) Usage() string { return "" }
 
 func (c *getRegisterCommand) queryRegister(in, out *portmidi.Stream, r *sc55.Register) (int, error) {
 	msg := r.Get(deviceID())
@@ -138,6 +161,9 @@ func (c *getRegisterCommand) Execute(_ context.Context, f *flag.FlagSet, _ ...in
 		registers = append(registers, r)
 	} else {
 		registers = sc55.AllRegisters()
+		if !c.all {
+			registers = onlyImportant(registers)
+		}
 	}
 	in, err := openInputStream()
 	if err != nil {
