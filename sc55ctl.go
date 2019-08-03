@@ -88,9 +88,10 @@ func onlyImportant(regs []*sc55.Register) []*sc55.Register {
 type listRegistersCommand struct {
 	all bool
 }
+
 func (*listRegistersCommand) Name() string     { return "register-list" }
 func (*listRegistersCommand) Synopsis() string { return "list all registers on the SoundCanvas" }
-func (*listRegistersCommand) Usage() string { return "" }
+func (*listRegistersCommand) Usage() string    { return "" }
 
 func (c *listRegistersCommand) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&c.all, "all", false, "list all registers")
@@ -109,15 +110,16 @@ func (c *listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interf
 
 type getRegisterCommand struct {
 	timeout time.Duration
-	all bool
+	all     bool
 }
+
 func (*getRegisterCommand) Name() string     { return "register-get" }
 func (*getRegisterCommand) Synopsis() string { return "get the value of a register" }
-func (*getRegisterCommand) Usage() string { return "" }
+func (*getRegisterCommand) Usage() string    { return "" }
 
 func (c *getRegisterCommand) SetFlags(f *flag.FlagSet) {
 	setCommonFlags(f)
-	f.DurationVar(&c.timeout, "timeout", 100 * time.Millisecond, "how long to wait for a reply from the SoundCanvas before timing out")
+	f.DurationVar(&c.timeout, "timeout", 100*time.Millisecond, "how long to wait for a reply from the SoundCanvas before timing out")
 	f.BoolVar(&c.all, "all", false, "fetch values of all registers")
 }
 
@@ -139,7 +141,7 @@ func (c *getRegisterCommand) queryRegister(in, out *portmidi.Stream, r *sc55.Reg
 			time.Sleep(time.Millisecond)
 			continue
 		}
-		for len(reply) > 0 && reply[len(reply) - 1] == 0 {
+		for len(reply) > 0 && reply[len(reply)-1] == 0 {
 			reply = reply[:len(reply)-1]
 		}
 		dev, value, err := r.Unmarshal(reply)
@@ -194,8 +196,8 @@ type cmd struct {
 	produceData    func([]string) ([]byte, error)
 }
 
-func (c *cmd) Name() string     { return c.name }
-func (c *cmd) Synopsis() string { return c.synopsis }
+func (c *cmd) Name() string           { return c.name }
+func (c *cmd) Synopsis() string       { return c.synopsis }
 func (*cmd) SetFlags(f *flag.FlagSet) { setCommonFlags(f) }
 func (c *cmd) Usage() string {
 	return fmt.Sprintf("%s [...]:\n%s\n", c.Name(), c.Synopsis())
@@ -259,7 +261,7 @@ var commands = []subcommands.Command{
 	&cmd{
 		name:     "display-image",
 		synopsis: "Show a picture on the SC-55 front panel",
-		minArgs: 1,
+		minArgs:  1,
 		produceData: func(args []string) ([]byte, error) {
 			in, err := os.Open(args[0])
 			if err != nil {
@@ -300,9 +302,9 @@ var commands = []subcommands.Command{
 	&listRegistersCommand{},
 	&getRegisterCommand{},
 	&cmd{
-		name: "register-set",
+		name:     "register-set",
 		synopsis: "set the value of a register",
-		minArgs: 2,
+		minArgs:  2,
 		produceData: func(args []string) ([]byte, error) {
 			r, ok := sc55.RegisterByName(args[0])
 			if !ok {

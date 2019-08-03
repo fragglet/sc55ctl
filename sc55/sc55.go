@@ -105,11 +105,11 @@ var (
 	MasterKeyShift = Register{0x400005, 1, 0x28, 0x58, 0x40}
 	MasterPan      = Register{0x400006, 1, 0x01, 0x7f, 0x40}
 
-	parts [16]Part
+	parts              [16]Part
 	registersByAddress map[int]*Register
-	registersByName map[string]*Register
-	registerName map[*Register]string
-	isImportant map[*Register]bool
+	registersByName    map[string]*Register
+	registerName       map[*Register]string
+	isImportant        map[*Register]bool
 )
 
 func addRegister(name string, r *Register, important bool) {
@@ -126,7 +126,7 @@ func checksum(data []byte) byte {
 	for _, b := range data {
 		sum += int(b)
 	}
-	return byte(128 - (sum % 128)) % 128
+	return byte(128-(sum%128)) % 128
 }
 
 func modelID(addr int) byte {
@@ -178,7 +178,7 @@ func DataGet(device DeviceID, addr, size int) []byte {
 // sent it, the address, and value.
 func UnmarshalSet(msg []byte) (DeviceID, int, []byte, error) {
 	switch {
-	case msg[0] != sysExStart || msg[len(msg) - 1] != sysExEnd:
+	case msg[0] != sysExStart || msg[len(msg)-1] != sysExEnd:
 		return 0, 0, nil, fmt.Errorf("failed to unmarshal: not a SysEx command")
 	case msg[1] != manufacturerID:
 		return 0, 0, nil, fmt.Errorf("wrong manufacturer: want %02x, got %02x", manufacturerID, msg[1])
@@ -189,12 +189,12 @@ func UnmarshalSet(msg []byte) (DeviceID, int, []byte, error) {
 	case len(msg) < 10:
 		return 0, 0, nil, fmt.Errorf("DT1 command too short: len=%d", len(msg))
 	}
-	wantChecksum := checksum(msg[5:len(msg)-2])
+	wantChecksum := checksum(msg[5 : len(msg)-2])
 	gotChecksum := msg[len(msg)-2]
 	if wantChecksum != gotChecksum {
 		return 0, 0, nil, fmt.Errorf("wrong checksum: calculated=%02x, got=%02x", wantChecksum, gotChecksum)
 	}
-	return DeviceID(msg[2]), unmarshalInt24(msg[5:8]), msg[8:len(msg)-2], nil
+	return DeviceID(msg[2]), unmarshalInt24(msg[5:8]), msg[8 : len(msg)-2], nil
 }
 
 // DisplayMessage returns an SC-55 SysEx command that displays a message on the
@@ -221,7 +221,7 @@ func DisplayImage(device DeviceID, img image.Image) ([]byte, error) {
 			bytenum := (x/5)*16 + y
 			bitnum := uint(4 - (x % 5))
 			r, g, b, _ := img.At(x, y).RGBA()
-			if (r+g+b) / 3 > 0x8000 {
+			if (r+g+b)/3 > 0x8000 {
 				buf[bytenum] |= 1 << bitnum
 			}
 		}
@@ -270,7 +270,7 @@ func (r *Register) Get(device DeviceID) []byte {
 
 // Set returns an SC-55 SysEx command to set the given register to the given value.
 func (r *Register) Set(device DeviceID, value int) []byte {
-	value = clamp(value + r.Zero, r.Min, r.Max)
+	value = clamp(value+r.Zero, r.Min, r.Max)
 	bytes := []byte{
 		byte(value & 0xff),
 		byte((value >> 8) & 0xff),
@@ -295,7 +295,7 @@ func (r *Register) Unmarshal(msg []byte) (DeviceID, int, error) {
 	}
 	result := 0
 	for i, b := range payload {
-		result |= int(b) << uint(i * 8)
+		result |= int(b) << uint(i*8)
 	}
 	if result < r.Min || result > r.Max {
 		return 0, 0, fmt.Errorf("register value out of range, want %d <= x <= %d, got x=%d", r.Min, r.Max, result)
@@ -403,7 +403,7 @@ func (p *Part) init(prefix string, addr int) {
 		_, important := tag.Lookup("important")
 		r := v.Field(i).Addr().Interface().(*Register)
 		r.Address += addr
-		addRegister(prefix + name, r, important)
+		addRegister(prefix+name, r, important)
 	}
 }
 
@@ -413,7 +413,7 @@ func PartByNumber(i int) *Part {
 	if i < 1 || i > 16 {
 		return nil
 	}
-	return &parts[i - 1]
+	return &parts[i-1]
 }
 
 func init() {
@@ -443,6 +443,6 @@ func init() {
 		if partNumber > 10 {
 			partIndex = partNumber - 1
 		}
-		parts[i].init(prefix, 0x401000 + partIndex*0x100)
+		parts[i].init(prefix, 0x401000+partIndex*0x100)
 	}
 }
