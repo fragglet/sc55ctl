@@ -122,7 +122,7 @@ func checksum(data []byte) byte {
 	for _, b := range data {
 		sum += int(b)
 	}
-	return byte(128 - (sum % 128))
+	return byte(128 - (sum % 128)) % 128
 }
 
 func modelID(addr int) byte {
