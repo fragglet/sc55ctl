@@ -96,10 +96,10 @@ const (
 )
 
 var (
-	MasterTune     = &Register{0x400000, 4, 0x18, 0x7e8, 0x400}
-	MasterVolume   = &Register{0x400004, 1, 0x00, 0x7f, 0}
-	MasterKeyShift = &Register{0x400005, 1, 0x28, 0x58, 0x40}
-	MasterPan      = &Register{0x400006, 1, 0x01, 0x7f, 0x40}
+	MasterTune     = Register{0x400000, 4, 0x18, 0x7e8, 0x400}
+	MasterVolume   = Register{0x400004, 1, 0x00, 0x7f, 0}
+	MasterKeyShift = Register{0x400005, 1, 0x28, 0x58, 0x40}
+	MasterPan      = Register{0x400006, 1, 0x01, 0x7f, 0x40}
 
 	// Parts contains the set of registers associated with each part.
 	Parts [16]Part
