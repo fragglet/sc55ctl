@@ -261,7 +261,7 @@ func (r *Register) Get(device DeviceID) []byte {
 
 // Set returns an SC-55 SysEx command to set the given register to the given value.
 func (r *Register) Set(device DeviceID, value int) []byte {
-	value = clamp(value, r.Min, r.Max) + r.Zero
+	value = clamp(value + r.Zero, r.Min, r.Max)
 	bytes := []byte{
 		byte(value & 0xff),
 		byte((value >> 8) & 0xff),
