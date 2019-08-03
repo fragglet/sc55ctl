@@ -31,6 +31,7 @@ func setCommonFlags(f *flag.FlagSet) {
 	f.StringVar(&midiDevice, "midi_device", "", "Name of output MIDI device")
 	f.IntVar(&sc55DeviceID, "sc55_device_id", int(sc55.DefaultDevice), "ID of SC-55 device to control")
 }
+
 func deviceID() sc55.DeviceID {
 	return sc55.DeviceID(sc55DeviceID)
 }
@@ -91,23 +92,32 @@ func (*listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interfac
 	return subcommands.ExitSuccess
 }
 
-type getRegisterCommand struct {}
+type getRegisterCommand struct {
+	timeout time.Duration
+}
 func (*getRegisterCommand) Name() string     { return "register-get" }
 func (*getRegisterCommand) Synopsis() string { return "get the value of a register" }
-func (*getRegisterCommand) SetFlags(f *flag.FlagSet) { setCommonFlags(f) }
+func (c *getRegisterCommand) SetFlags(f *flag.FlagSet) {
+	setCommonFlags(f)
+	f.DurationVar(&c.timeout, "timeout", 100 * time.Millisecond, "how long to wait for a reply from the SoundCanvas before timing out")
+}
 func (*getRegisterCommand) Usage() string { return "" }
 
-func queryRegister(in, out *portmidi.Stream, r *sc55.Register) (int, error) {
+func (c *getRegisterCommand) queryRegister(in, out *portmidi.Stream, r *sc55.Register) (int, error) {
 	msg := r.Get(deviceID())
 	if err := out.WriteSysExBytes(portmidi.Time(), msg); err != nil {
 		return 0, err
 	}
+	timeoutTime := time.Now().Add(c.timeout)
 	for {
 		reply, err := in.ReadSysExBytes(1000)
 		if err != nil {
 			return 0, err
 		}
 		if len(reply) == 0 {
+			if time.Now().After(timeoutTime) {
+				return 0, fmt.Errorf("timeout waiting for reply fetching register %q value", r.Name())
+			}
 			time.Sleep(time.Millisecond)
 			continue
 		}
@@ -121,16 +131,18 @@ func queryRegister(in, out *portmidi.Stream, r *sc55.Register) (int, error) {
 	}
 }
 
-func (*getRegisterCommand) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	if len(f.Args()) != 1 {
-		log.Printf("register name not supplied")
-		return subcommands.ExitUsageError
-	}
-	regName := f.Args()[0]
-	r, ok := sc55.RegisterByName(regName)
-	if !ok {
-		log.Printf("unknown register %q", regName)
-		return subcommands.ExitUsageError
+func (c *getRegisterCommand) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	var registers []*sc55.Register
+	if len(f.Args()) > 0 {
+		regName := f.Args()[0]
+		r, ok := sc55.RegisterByName(regName)
+		if !ok {
+			log.Printf("unknown register %q", regName)
+			return subcommands.ExitUsageError
+		}
+		registers = append(registers, r)
+	} else {
+		registers = sc55.AllRegisters()
 	}
 	in, err := openInputStream()
 	if err != nil {
@@ -142,13 +154,17 @@ func (*getRegisterCommand) Execute(_ context.Context, f *flag.FlagSet, _ ...inte
 		log.Printf("failed to open output stream: %v", err)
 		return subcommands.ExitFailure
 	}
-	result, err := queryRegister(in, out, r)
-	if err != nil {
-		log.Printf("error querying register %q: %v", r.Name(), err)
-		return subcommands.ExitFailure
+	result := subcommands.ExitSuccess
+	for _, r := range registers {
+		value, err := c.queryRegister(in, out, r)
+		if err != nil {
+			log.Printf("error querying register %q: %v", r.Name(), err)
+			result = subcommands.ExitFailure
+			continue
+		}
+		fmt.Printf("%10x  %32s  %d\n", r.Address, r.Name(), value)
 	}
-	fmt.Println(result)
-	return subcommands.ExitSuccess
+	return result
 }
 
 type cmd struct {
