@@ -21,8 +21,7 @@ type Register struct {
 
 // Part represents the set of registers associated with a part.
 type Part struct {
-	ToneNumberCC        Register `name:"tone-number-cc"`
-	ToneNumberPC        Register `name:"tone-number-cc"`
+	ToneNumber          Register `name:"tone-number-cc"`
 	RxChannel           Register `name:"rx-channel"`
 	RxPitchBend         Register `name:"rx-pitch-bend"`
 	RxChPressure        Register `name:"rx-ch-pressure"`
@@ -329,8 +328,7 @@ func AllRegisters() []*Register {
 }
 
 var templatePart = Part{
-	ToneNumberCC:        Register{0x00, 1, 0x00, 0x7f, 0},
-	ToneNumberPC:        Register{0x01, 1, 0x00, 0x7f, 0},
+	ToneNumber:          Register{0x00, 2, 0x00, 0x7f00, 0},
 	RxChannel:           Register{0x02, 1, 0x00, 0x10, 0},
 	RxPitchBend:         Register{0x03, 1, 0x00, 0x01, 0},
 	RxChPressure:        Register{0x04, 1, 0x00, 0x01, 0},
