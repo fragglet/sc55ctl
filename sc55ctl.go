@@ -82,6 +82,7 @@ func openPortMidi() (*portmidi.Stream, error) {
 
 type cmd struct {
 	name, synopsis string
+	minArgs int
 	produceData func ([]string) ([]byte, error)
 }
 
@@ -93,7 +94,7 @@ func (c *cmd) Usage() string {
 }
 
 func (c *cmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	if len(f.Args()) < 1 {
+	if len(f.Args()) < c.minArgs {
 		log.Printf("parameter not provided for command %q", c.name)
 		return subcommands.ExitFailure
 	}
@@ -127,6 +128,7 @@ var commands = []subcommands.Command{
 	&cmd{
 		name: "display-message",
 		synopsis: "Show a message on the SC-55 front panel",
+		minArgs: 1,
 		produceData: func(args []string) ([]byte, error) {
 			msg := strings.Join(args, " ")
 			return sc55.DisplayMessage(deviceID(), msg), nil
@@ -143,21 +145,25 @@ var commands = []subcommands.Command{
 	&cmd{
 		name: "master-volume",
 		synopsis: "Set the master volume",
+		minArgs: 1,
 		produceData: setParameterCallback(sc55.SetMasterVolume),
 	},
 	&cmd{
 		name: "master-pan",
 		synopsis: "Set the master pan",
+		minArgs: 1,
 		produceData: setParameterCallback(sc55.SetMasterPan),
 	},
 	&cmd{
 		name: "master-tune",
 		synopsis: "Set the master tune",
+		minArgs: 1,
 		produceData: setParameterCallback(sc55.SetMasterTune),
 	},
 	&cmd{
 		name: "master-key-shift",
 		synopsis: "Set the master key shift",
+		minArgs: 1,
 		produceData: setParameterCallback(sc55.SetMasterKeyShift),
 	},
 }
