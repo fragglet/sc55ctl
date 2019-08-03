@@ -185,7 +185,7 @@ func (c *getRegisterCommand) Execute(_ context.Context, f *flag.FlagSet, _ ...in
 			result = subcommands.ExitFailure
 			continue
 		}
-		fmt.Printf("%10x  %32s  %d\n", r.Address, r.Name(), value)
+		fmt.Printf("%-30s  %6d\n", r.Name(), value)
 	}
 	return result
 }
