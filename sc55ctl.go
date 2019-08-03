@@ -21,31 +21,31 @@ const (
 )
 
 var (
-	midiDevice = flag.String("midi_device", "", "Name of output MIDI device")
-	sc55DeviceID = flag.Int("sc55_device_id", sc55.DefaultDevice, "ID of SC-55 device to control")
+	midiDevice   string
+	sc55DeviceID int
 )
 
-var bitmap = [16][16]bool{
-	{ o, X, o, X, o, o, o, o, o, X, o, X, o, o, o, o },
-	{ o, X, o, X, o, o, X, o, o, X, o, X, o, o, X, o },
-	{ o, X, X, X, o, X, o, X, o, X, o, X, o, X, o, X },
-	{ o, X, o, X, o, X, X, o, o, X, o, X, o, X, o, X },
-	{ o, X, o, X, o, o, X, X, o, X, o, X, o, o, X, o },
-	{ o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o },
-	{ X, o, X, o, o, o, o, o, o, o, o, X, o, o, o, X },
-	{ X, o, X, o, o, X, o, o, o, X, o, X, o, o, o, X },
-	{ X, X, X, o, X, o, X, o, X, o, o, X, o, o, X, X },
-	{ X, X, X, o, X, o, X, o, X, o, o, X, o, X, o, X },
-	{ X, o, X, o, o, X, o, o, X, o, o, X, o, X, X, X },
-	{ o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o },
-	{ o, o, X, o, o, o, X, o, o, o, X, o, o, o, o, o },
-	{ o, o, o, o, X, o, o, o, o, o, o, X, o, o, o, o },
-	{ o, o, X, o, o, o, X, o, o, X, X, X, o, o, o, o },
-	{ o, o, o, X, X, X, o, o, o, o, o, o, o, o, o, o },
+func deviceID() sc55.DeviceID {
+	return sc55.DeviceID(sc55DeviceID)
 }
 
-func deviceID() sc55.DeviceID {
-	return sc55.DeviceID(*sc55DeviceID)
+var bitmap = [16][16]bool{
+	{o, X, o, X, o, o, o, o, o, X, o, X, o, o, o, o},
+	{o, X, o, X, o, o, X, o, o, X, o, X, o, o, X, o},
+	{o, X, X, X, o, X, o, X, o, X, o, X, o, X, o, X},
+	{o, X, o, X, o, X, X, o, o, X, o, X, o, X, o, X},
+	{o, X, o, X, o, o, X, X, o, X, o, X, o, o, X, o},
+	{o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o},
+	{X, o, X, o, o, o, o, o, o, o, o, X, o, o, o, X},
+	{X, o, X, o, o, X, o, o, o, X, o, X, o, o, o, X},
+	{X, X, X, o, X, o, X, o, X, o, o, X, o, o, X, X},
+	{X, X, X, o, X, o, X, o, X, o, o, X, o, X, o, X},
+	{X, o, X, o, o, X, o, o, X, o, o, X, o, X, X, X},
+	{o, o, o, o, o, o, o, o, o, o, o, o, o, o, o, o},
+	{o, o, X, o, o, o, X, o, o, o, X, o, o, o, o, o},
+	{o, o, o, o, X, o, o, o, o, o, o, X, o, o, o, o},
+	{o, o, X, o, o, o, X, o, o, X, X, X, o, o, o, o},
+	{o, o, o, X, X, X, o, o, o, o, o, o, o, o, o, o},
 }
 
 // outPortForName returns the device ID of the port with the given name.
@@ -71,8 +71,8 @@ func openPortMidi() (*portmidi.Stream, error) {
 		return nil, err
 	}
 	id := portmidi.DefaultOutputDeviceID()
-	if *midiDevice != "" {
-		id, err = outPortForName(*midiDevice)
+	if midiDevice != "" {
+		id, err = outPortForName(midiDevice)
 		if err != nil {
 			return nil, err
 		}
@@ -82,13 +82,16 @@ func openPortMidi() (*portmidi.Stream, error) {
 
 type cmd struct {
 	name, synopsis string
-	minArgs int
-	produceData func ([]string) ([]byte, error)
+	minArgs        int
+	produceData    func([]string) ([]byte, error)
 }
 
 func (c *cmd) Name() string     { return c.name }
 func (c *cmd) Synopsis() string { return c.synopsis }
-func (*cmd) SetFlags(f *flag.FlagSet) {}
+func (*cmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&midiDevice, "midi_device", "", "Name of output MIDI device")
+	f.IntVar(&sc55DeviceID, "sc55_device_id", sc55.DefaultDevice, "ID of SC-55 device to control")
+}
 func (c *cmd) Usage() string {
 	return fmt.Sprintf("%s [...]:\n%s\n", c.Name(), c.Synopsis())
 }
@@ -114,7 +117,7 @@ func (c *cmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subc
 	return subcommands.ExitSuccess
 }
 
-func setParameterCallback(f func(sc55.DeviceID, int) []byte) func ([]string) ([]byte, error) {
+func setParameterCallback(f func(sc55.DeviceID, int) []byte) func([]string) ([]byte, error) {
 	return func(args []string) ([]byte, error) {
 		val, err := strconv.ParseInt(args[0], 10, 64)
 		if err != nil {
@@ -126,16 +129,16 @@ func setParameterCallback(f func(sc55.DeviceID, int) []byte) func ([]string) ([]
 
 var commands = []subcommands.Command{
 	&cmd{
-		name: "display-message",
+		name:     "display-message",
 		synopsis: "Show a message on the SC-55 front panel",
-		minArgs: 1,
+		minArgs:  1,
 		produceData: func(args []string) ([]byte, error) {
 			msg := strings.Join(args, " ")
 			return sc55.DisplayMessage(deviceID(), msg), nil
 		},
 	},
 	&cmd{
-		name: "display-image",
+		name:     "display-image",
 		synopsis: "Show a picture on the SC-55 front panel",
 		produceData: func(args []string) ([]byte, error) {
 			// TODO: Allow the user to specify an image file
@@ -143,27 +146,27 @@ var commands = []subcommands.Command{
 		},
 	},
 	&cmd{
-		name: "master-volume",
-		synopsis: "Set the master volume",
-		minArgs: 1,
+		name:        "master-volume",
+		synopsis:    "Set the master volume",
+		minArgs:     1,
 		produceData: setParameterCallback(sc55.SetMasterVolume),
 	},
 	&cmd{
-		name: "master-pan",
-		synopsis: "Set the master pan",
-		minArgs: 1,
+		name:        "master-pan",
+		synopsis:    "Set the master pan",
+		minArgs:     1,
 		produceData: setParameterCallback(sc55.SetMasterPan),
 	},
 	&cmd{
-		name: "master-tune",
-		synopsis: "Set the master tune",
-		minArgs: 1,
+		name:        "master-tune",
+		synopsis:    "Set the master tune",
+		minArgs:     1,
 		produceData: setParameterCallback(sc55.SetMasterTune),
 	},
 	&cmd{
-		name: "master-key-shift",
-		synopsis: "Set the master key shift",
-		minArgs: 1,
+		name:        "master-key-shift",
+		synopsis:    "Set the master key shift",
+		minArgs:     1,
 		produceData: setParameterCallback(sc55.SetMasterKeyShift),
 	},
 }
@@ -178,4 +181,3 @@ func main() {
 	ctx := context.Background()
 	os.Exit(int(subcommands.Execute(ctx)))
 }
-
