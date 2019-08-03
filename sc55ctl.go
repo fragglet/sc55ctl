@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/fragglet/sc55ctl/sc55"
 	"github.com/google/subcommands"
@@ -26,17 +27,24 @@ var (
 	sc55DeviceID int
 )
 
+func setCommonFlags(f *flag.FlagSet) {
+	f.StringVar(&midiDevice, "midi_device", "", "Name of output MIDI device")
+	f.IntVar(&sc55DeviceID, "sc55_device_id", int(sc55.DefaultDevice), "ID of SC-55 device to control")
+}
 func deviceID() sc55.DeviceID {
 	return sc55.DeviceID(sc55DeviceID)
 }
 
-// outPortForName returns the device ID of the port with the given name.
-func outPortForName(name string) (portmidi.DeviceID, error) {
+// portForName returns the device ID of the port with the given name.
+func portForName(name string, output bool) (portmidi.DeviceID, error) {
 	portNames := []string{}
 	for i := 0; i < portmidi.CountDevices(); i++ {
 		id := portmidi.DeviceID(i)
 		info := portmidi.Info(id)
-		if !info.IsOutputAvailable {
+		switch {
+		case output && !info.IsOutputAvailable:
+			continue
+		case !output && !info.IsInputAvailable:
 			continue
 		}
 		if info.Name == name {
@@ -47,19 +55,28 @@ func outPortForName(name string) (portmidi.DeviceID, error) {
 	return portmidi.DeviceID(-1), fmt.Errorf("invalid port %q: valid ports: %v", name, strings.Join(portNames, "; "))
 }
 
-func openPortMidi() (*portmidi.Stream, error) {
-	err := portmidi.Initialize()
-	if err != nil {
-		return nil, err
-	}
+func openOutputStream() (*portmidi.Stream, error) {
 	id := portmidi.DefaultOutputDeviceID()
 	if midiDevice != "" {
-		id, err = outPortForName(midiDevice)
+		var err error
+		id, err = portForName(midiDevice, true)
 		if err != nil {
 			return nil, err
 		}
 	}
 	return portmidi.NewOutputStream(id, 1024, 0)
+}
+
+func openInputStream() (*portmidi.Stream, error) {
+	id := portmidi.DefaultInputDeviceID()
+	if midiDevice != "" {
+		var err error
+		id, err = portForName(midiDevice, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return portmidi.NewInputStream(id, 1024)
 }
 
 type listRegistersCommand struct {}
@@ -74,6 +91,66 @@ func (*listRegistersCommand) Execute(context.Context, *flag.FlagSet, ...interfac
 	return subcommands.ExitSuccess
 }
 
+type getRegisterCommand struct {}
+func (*getRegisterCommand) Name() string     { return "register-get" }
+func (*getRegisterCommand) Synopsis() string { return "get the value of a register" }
+func (*getRegisterCommand) SetFlags(f *flag.FlagSet) { setCommonFlags(f) }
+func (*getRegisterCommand) Usage() string { return "" }
+
+func queryRegister(in, out *portmidi.Stream, r *sc55.Register) ([]byte, error) {
+	msg := r.Get(deviceID())
+	if err := out.WriteSysExBytes(portmidi.Time(), msg); err != nil {
+		return nil, err
+	}
+	for {
+		reply, err := in.ReadSysExBytes(1000)
+		if err != nil {
+			return nil, err
+		}
+		if len(reply) == 0 {
+			time.Sleep(time.Millisecond)
+			continue
+		}
+		for len(reply) > 0 && reply[len(reply) - 1] == 0 {
+			reply = reply[:len(reply)-1]
+		}
+		dev, addr, value, err := sc55.UnmarshalSet(reply)
+		if err == nil && dev == deviceID() && addr == r.Address {
+			return value, nil
+		}
+	}
+}
+
+func (*getRegisterCommand) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	if len(f.Args()) != 1 {
+		log.Printf("register name not supplied")
+		return subcommands.ExitUsageError
+	}
+	regName := f.Args()[0]
+	r, ok := sc55.RegisterByName(regName)
+	if !ok {
+		log.Printf("unknown register %q", regName)
+		return subcommands.ExitUsageError
+	}
+	in, err := openInputStream()
+	if err != nil {
+		log.Printf("failed to open input stream: %v", err)
+		return subcommands.ExitFailure
+	}
+	out, err := openOutputStream()
+	if err != nil {
+		log.Printf("failed to open output stream: %v", err)
+		return subcommands.ExitFailure
+	}
+	result, err := queryRegister(in, out, r)
+	if err != nil {
+		log.Printf("error querying register %q: %v", r.Name(), err)
+		return subcommands.ExitFailure
+	}
+	fmt.Println(result)
+	return subcommands.ExitSuccess
+}
+
 type cmd struct {
 	name, synopsis string
 	minArgs        int
@@ -82,10 +159,7 @@ type cmd struct {
 
 func (c *cmd) Name() string     { return c.name }
 func (c *cmd) Synopsis() string { return c.synopsis }
-func (*cmd) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&midiDevice, "midi_device", "", "Name of output MIDI device")
-	f.IntVar(&sc55DeviceID, "sc55_device_id", int(sc55.DefaultDevice), "ID of SC-55 device to control")
-}
+func (*cmd) SetFlags(f *flag.FlagSet) { setCommonFlags(f) }
 func (c *cmd) Usage() string {
 	return fmt.Sprintf("%s [...]:\n%s\n", c.Name(), c.Synopsis())
 }
@@ -99,9 +173,9 @@ func (c *cmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subc
 	if err != nil {
 		return subcommands.ExitUsageError
 	}
-	out, err := openPortMidi()
+	out, err := openOutputStream()
 	if err != nil {
-		log.Printf("failed to open portmidi: %v", err)
+		log.Printf("failed to open output stream: %v", err)
 		return subcommands.ExitFailure
 	}
 	if err := out.WriteSysExBytes(portmidi.Time(), msg); err != nil {
@@ -187,19 +261,7 @@ var commands = []subcommands.Command{
 		produceData: setParameterCallback(sc55.MasterKeyShift.Set),
 	},
 	&listRegistersCommand{},
-	&cmd{
-		name: "register-get",
-		synopsis: "get the value of a register",
-		minArgs: 1,
-		produceData: func(args []string) ([]byte, error) {
-			r, ok := sc55.RegisterByName(args[0])
-			if !ok {
-
-				return nil, fmt.Errorf("unknown register %q", args[0])
-			}
-			return r.Get(deviceID()), nil
-		},
-	},
+	&getRegisterCommand{},
 	&cmd{
 		name: "register-set",
 		synopsis: "set the value of a register",
@@ -221,6 +283,9 @@ var commands = []subcommands.Command{
 
 func main() {
 	flag.Parse()
+	if err := portmidi.Initialize(); err != nil {
+		log.Fatalf("failed to initialize portmidi: %v", err)
+	}
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
 	for _, cmd := range commands {
