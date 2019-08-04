@@ -102,10 +102,25 @@ const (
 )
 
 var (
-	MasterTune     = Register{0x400000, 4, 0x18, 0x7e8, 0x400}
-	MasterVolume   = Register{0x400004, 1, 0x00, 0x7f, 0}
-	MasterKeyShift = Register{0x400005, 1, 0x28, 0x58, 0x40}
-	MasterPan      = Register{0x400006, 1, 0x01, 0x7f, 0x40}
+	MasterTune          = Register{0x400000, 4, 0x18, 0x7e8, 0x400}
+	MasterVolume        = Register{0x400004, 1, 0x00, 0x7f, 0}
+	MasterKeyShift      = Register{0x400005, 1, 0x28, 0x58, 0x40}
+	MasterPan           = Register{0x400006, 1, 0x01, 0x7f, 0x40}
+	ReverbMacro         = Register{0x400130, 1, 0x00, 0x07, 0}
+	ReverbCharacter     = Register{0x400131, 1, 0x00, 0x07, 0}
+	ReverbPreLPF        = Register{0x400132, 1, 0x00, 0x07, 0}
+	ReverbLevel         = Register{0x400133, 1, 0x00, 0x7f, 0}
+	ReverbTime          = Register{0x400134, 1, 0x00, 0x7f, 0}
+	ReverbDelayFeedback = Register{0x400135, 1, 0x00, 0x7f, 0}
+	ReverbToChorusLevel = Register{0x400136, 1, 0x00, 0x7f, 0}
+	ChorusMacro         = Register{0x400138, 1, 0x00, 0x07, 0}
+	ChorusPreLPF        = Register{0x400139, 1, 0x00, 0x07, 0}
+	ChorusLevel         = Register{0x40013a, 1, 0x00, 0x7f, 0}
+	ChorusFeedback      = Register{0x40013b, 1, 0x00, 0x7f, 0}
+	ChorusDelay         = Register{0x40013c, 1, 0x00, 0x7f, 0}
+	ChorusRate          = Register{0x40013d, 1, 0x00, 0x7f, 0}
+	ChorusDepth         = Register{0x40013e, 1, 0x00, 0x7f, 0}
+	ChorusToReverbLevel = Register{0x40013f, 1, 0x00, 0x7f, 0}
 
 	parts              [16]Part
 	registersByAddress map[int]*Register
@@ -383,18 +398,18 @@ var templatePart = Part{
 	ToneModify7:         Register{0x36, 1, 0x0e, 0x72, 0x40},
 	ToneModify8:         Register{0x37, 1, 0x0e, 0x72, 0x40},
 	/*
-	ScaleTuningC:        Register{0x40, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningCSharp:   Register{0x41, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningD:        Register{0x42, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningDSharp:   Register{0x43, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningE:        Register{0x44, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningF:        Register{0x45, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningFSharp:   Register{0x46, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningG:        Register{0x47, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningGSharp:   Register{0x48, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningA:        Register{0x49, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningASharp:   Register{0x4a, 1, 0x00, 0x7f, 0x40},
-	ScaleTuningB:        Register{0x4b, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningC:        Register{0x40, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningCSharp:   Register{0x41, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningD:        Register{0x42, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningDSharp:   Register{0x43, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningE:        Register{0x44, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningF:        Register{0x45, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningFSharp:   Register{0x46, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningG:        Register{0x47, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningGSharp:   Register{0x48, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningA:        Register{0x49, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningASharp:   Register{0x4a, 1, 0x00, 0x7f, 0x40},
+		ScaleTuningB:        Register{0x4b, 1, 0x00, 0x7f, 0x40},
 	*/
 }
 
@@ -430,6 +445,21 @@ func init() {
 	addRegister("master-volume", &MasterVolume, true)
 	addRegister("master-key-shift", &MasterKeyShift, true)
 	addRegister("master-pan", &MasterPan, true)
+	addRegister("reverb-macro", &ReverbMacro, false)
+	addRegister("reverb-character", &ReverbCharacter, false)
+	addRegister("reverb-pre-lpf", &ReverbPreLPF, false)
+	addRegister("reverb-level", &ReverbLevel, true)
+	addRegister("reverb-time", &ReverbTime, false)
+	addRegister("reverb-delay-feedback", &ReverbDelayFeedback, false)
+	addRegister("reverb-to-chorus-level", &ReverbToChorusLevel, false)
+	addRegister("chorus-macro", &ChorusMacro, false)
+	addRegister("chorus-pre-lpf", &ChorusPreLPF, false)
+	addRegister("chorus-level", &ChorusLevel, true)
+	addRegister("chorus-feedback", &ChorusFeedback, false)
+	addRegister("chorus-delay", &ChorusDelay, false)
+	addRegister("chorus-rate", &ChorusRate, false)
+	addRegister("chorus-depth", &ChorusDepth, false)
+	addRegister("chorus-to-reverb-level", &ChorusToReverbLevel, false)
 
 	for i := range parts {
 		// As per the SC-55 manual ... (yes this is silly)
