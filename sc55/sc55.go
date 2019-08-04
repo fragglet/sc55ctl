@@ -338,7 +338,7 @@ func AllRegisters() []*Register {
 }
 
 var templatePart = Part{
-	ToneNumber:          Register{0x00, 2, 0x00, 0x7f00, 0},
+	ToneNumber:          Register{0x00, 2, 0x00, 0x7f7f, 0},
 	RxChannel:           Register{0x02, 1, 0x00, 0x10, 0},
 	RxPitchBend:         Register{0x03, 1, 0x00, 0x01, 0},
 	RxChPressure:        Register{0x04, 1, 0x00, 0x01, 0},
