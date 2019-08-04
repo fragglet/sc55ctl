@@ -63,6 +63,7 @@ type Part struct {
 	ToneModify6         Register `name:"tone-modify-6"`
 	ToneModify7         Register `name:"tone-modify-7"`
 	ToneModify8         Register `name:"tone-modify-8"`
+	/* These are all one register:
 	ScaleTuningC        Register `name:"scale-tuning-c"`
 	ScaleTuningCSharp   Register `name:"scale-tuning-cs"`
 	ScaleTuningD        Register `name:"scale-tuning-d"`
@@ -75,6 +76,7 @@ type Part struct {
 	ScaleTuningA        Register `name:"scale-tuning-a"`
 	ScaleTuningASharp   Register `name:"scale-tuning-as"`
 	ScaleTuningB        Register `name:"scale-tuning-b"`
+	*/
 }
 
 const (
@@ -380,6 +382,7 @@ var templatePart = Part{
 	ToneModify6:         Register{0x35, 1, 0x0e, 0x72, 0x40},
 	ToneModify7:         Register{0x36, 1, 0x0e, 0x72, 0x40},
 	ToneModify8:         Register{0x37, 1, 0x0e, 0x72, 0x40},
+	/*
 	ScaleTuningC:        Register{0x40, 1, 0x00, 0x7f, 0x40},
 	ScaleTuningCSharp:   Register{0x41, 1, 0x00, 0x7f, 0x40},
 	ScaleTuningD:        Register{0x42, 1, 0x00, 0x7f, 0x40},
@@ -392,6 +395,7 @@ var templatePart = Part{
 	ScaleTuningA:        Register{0x49, 1, 0x00, 0x7f, 0x40},
 	ScaleTuningASharp:   Register{0x4a, 1, 0x00, 0x7f, 0x40},
 	ScaleTuningB:        Register{0x4b, 1, 0x00, 0x7f, 0x40},
+	*/
 }
 
 func (p *Part) init(prefix string, addr int) {
