@@ -35,7 +35,7 @@ type Part struct {
 	RxVolume            Register `name:"rx-volume"`
 	RxPanPot            Register `name:"rx-pan-pot"`
 	RxExpression        Register `name:"rx-expression"`
-	RxHoldi             Register `name:"rx-holdi"`
+	RxHold1             Register `name:"rx-hold-1"`
 	RxPortamento        Register `name:"rx-portamento"`
 	RxSostenuto         Register `name:"rx-sostenuto"`
 	RxSoft              Register `name:"rx-soft"`
