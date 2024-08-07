@@ -369,7 +369,7 @@ var templatePart = Part{
 	RxVolume:            Register{0x0c, 1, 0x00, 0x01, 0},
 	RxPanPot:            Register{0x0d, 1, 0x00, 0x01, 0},
 	RxExpression:        Register{0x0e, 1, 0x00, 0x01, 0},
-	RxHoldi:             Register{0x0f, 1, 0x00, 0x01, 0},
+	RxHold1:             Register{0x0f, 1, 0x00, 0x01, 0},
 	RxPortamento:        Register{0x10, 1, 0x00, 0x01, 0},
 	RxSostenuto:         Register{0x11, 1, 0x00, 0x01, 0},
 	RxSoft:              Register{0x12, 1, 0x00, 0x01, 0},
