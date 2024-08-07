@@ -369,7 +369,7 @@ var templatePart = Part{
 	RxVolume:            Register{0x0c, 1, 0x00, 0x01, 0},
 	RxPanPot:            Register{0x0d, 1, 0x00, 0x01, 0},
 	RxExpression:        Register{0x0e, 1, 0x00, 0x01, 0},
-	RxHoldi:             Register{0x0f, 1, 0x00, 0x01, 0},
+	RxHold1:             Register{0x0f, 1, 0x00, 0x01, 0},
 	RxPortamento:        Register{0x10, 1, 0x00, 0x01, 0},
 	RxSostenuto:         Register{0x11, 1, 0x00, 0x01, 0},
 	RxSoft:              Register{0x12, 1, 0x00, 0x01, 0},
@@ -465,7 +465,7 @@ func init() {
 		// As per the SC-55 manual ... (yes this is silly)
 		// i  #0 -> partNumber  1 -> partIndex 1
 		// i  #1 -> partNumber  2 -> partIndex 2
-		// ...
+		// ..tr.
 		// i  #9 -> partNumber 10 -> partIndex 0
 		// i #10 -> partNumber 11 -> partIndex A
 		// i #11 -> partNumber 12 -> partIndex B
