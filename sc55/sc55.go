@@ -465,7 +465,7 @@ func init() {
 		// As per the SC-55 manual ... (yes this is silly)
 		// i  #0 -> partNumber  1 -> partIndex 1
 		// i  #1 -> partNumber  2 -> partIndex 2
-		// ..tr.
+		// ...
 		// i  #9 -> partNumber 10 -> partIndex 0
 		// i #10 -> partNumber 11 -> partIndex A
 		// i #11 -> partNumber 12 -> partIndex B
